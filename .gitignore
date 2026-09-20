@@ -1,0 +1,24 @@
+# Personal tasks and their backups must stay local.
+data/
+**/test-data/
+verification/
+dist/
+
+# Generated builds, local shortcuts and temporary files.
+*.exe
+*.zip
+*.lnk
+*.tmp
+*.bak
+*.log
+.vs/
+bin/
+obj/
+
+# Local credentials and environment settings.
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
