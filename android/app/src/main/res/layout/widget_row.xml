@@ -1,0 +1,7 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="60dp" android:orientation="horizontal" android:gravity="center_vertical">
+    <TextView android:id="@+id/widget_check" android:layout_width="48dp" android:layout_height="match_parent" android:text="@string/widget_unchecked" android:gravity="center" android:textColor="#22735B" android:textSize="24sp" android:contentDescription="@string/widget_toggle" />
+    <LinearLayout android:id="@+id/widget_row_text" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#243C36" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/widget_due" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#78867D" android:textSize="11sp" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+</LinearLayout>

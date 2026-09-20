@@ -22,3 +22,15 @@ obj/
 *.pfx
 *.p12
 *.key
+*.jks
+*.keystore
+*.msix
+*.appx
+*.aab
+*.apk
+**/.gradle/
+**/build/
+**/local.properties
+**/signing.properties
+store/identity.local.json
+!android/gradle/wrapper/gradle-wrapper.jar

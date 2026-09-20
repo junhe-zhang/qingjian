@@ -1,3 +1,21 @@
+# 青笺 QingJian v1.1.0-preview
+
+Windows 商店适配与首个 Android 0.1.0 预览版。
+
+- Android：待办、备注、截止时间、完成划线、搜索筛选、桌面小组件及系统通知，支持通知内完成和延后 10 分钟。
+- Windows：默认数据目录调整到当前用户的 LocalAppData，保留便携模式，并迁移程序旁的旧版数据，已有数据不覆盖。
+- 提供 MSIX 打包脚本、商店介绍、演示截图、隐私政策与支持页面。
+
+下载 `QingJian-Android-0.1.0-preview.apk` 在 Android 8.0 及以上体验；首次使用通过「提醒设置」允许通知。预览包使用调试签名，尚未提交应用市场。正式签名版本可能需要单独安装，当前没有数据导出或跨设备同步，请勿将预览版作为重要数据的唯一副本。
+
+Windows 下载 `QingJian-1.1.0-win-portable.zip`，解压后运行 `QingJian.exe`。包内带有 `portable.flag`，数据保存在程序旁的 `data/`；更新时保留旧 `data/` 文件夹。Windows 程序未经代码签名。
+
+Microsoft Store 仍需开发者注册、关联产品标识、正式包安装验证和商店审核，本次发布不代表已上架。Android release AAB 已可构建，但尚未配置正式开发者签名。
+
+Windows 完全退出、关机或休眠期间无法提醒；Android 强行停止、关闭通知或后台限制可能阻止提醒。
+
+---
+
 # 青笺 QingJian v1.0.0
 
 首个 Windows 便携版。

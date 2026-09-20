@@ -15,6 +15,12 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 
+[assembly: System.Reflection.AssemblyTitle("QingJian")]
+[assembly: System.Reflection.AssemblyProduct("QingJian")]
+[assembly: System.Reflection.AssemblyVersion("1.1.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.1.0.0")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8")]
+
 namespace DesktopMemo
 {
     [DataContract]
@@ -439,13 +445,15 @@ namespace DesktopMemo
         public static int Main(string[] args)
         {
             if (args.Contains("--self-test")) return SelfTest.Run();
-            string folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
+            string baseFolder = AppDomain.CurrentDomain.BaseDirectory;
+            bool portable = args.Contains("--portable") || File.Exists(Path.Combine(baseFolder, "portable.flag"));
+            string folder = DataLocation.Resolve(baseFolder, Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), portable);
             bool created;
             using (var mutex = new Mutex(true, "Local\\DesktopMemo_" + StableHash(folder), out created))
             {
                 if (!created) { MessageBox.Show("青笺已在运行。请双击右下角托盘中的图标打开。", "青笺 QingJian"); return 0; }
                 var app = new MemoApp { Store = new Store(folder) };
-                try { app.State = app.Store.Load(); }
+                try { DataLocation.Migrate(baseFolder, folder); app.State = app.Store.Load(); }
                 catch (Exception ex)
                 { MessageBox.Show("无法读取待办数据，原文件未被覆盖。\n" + ex.Message + "\n\n数据位置：" + app.Store.PathName + "\n如需恢复，可先保留原文件，再将 tasks.json.bak 复制为 tasks.json。", "无法启动", MessageBoxButton.OK, MessageBoxImage.Error); return 1; }
                 app.Start(); app.Run();
@@ -454,6 +462,19 @@ namespace DesktopMemo
         }
         static string StableHash(string value)
         { using (var sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value.ToUpperInvariant()))).Replace("-", "").Substring(0, 24); }
+    }
+
+    public static class DataLocation
+    {
+        public static string Resolve(string programFolder, string localData, bool portable)
+        { return portable ? Path.Combine(programFolder, "data") : Path.Combine(localData, "QingJian"); }
+        public static void Migrate(string programFolder, string destination)
+        {
+            string legacy = Path.Combine(programFolder, "data");
+            var target = new Store(destination);
+            if (string.Equals(Path.GetFullPath(legacy).TrimEnd('\\'), Path.GetFullPath(destination).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) || File.Exists(target.PathName) || !File.Exists(Path.Combine(legacy, "tasks.json"))) return;
+            target.Save(new Store(legacy).Load());
+        }
     }
 
     public static class SelfTest
@@ -476,6 +497,15 @@ namespace DesktopMemo
                 var store = new Store(Path.Combine(output, "test-data")); store.Save(state); var read = store.Load(); Assert(read.Tasks[0].Title == state.Tasks[0].Title && read.Tasks[0].Due.Value == now && read.Tasks[0].Done && !read.Tasks[0].Desktop && read.Tasks[0].NotifiedStage == 2 && read.Tasks[0].SnoozedUntil == now.AddMinutes(10), "Round trip");
                 state.Tasks[0].Title = "更新"; store.Save(state); Assert(store.Load().Tasks[0].Title == "更新", "Atomic update"); Assert(Store.Decode(File.ReadAllBytes(store.PathName + ".bak")).Tasks[0].Title == read.Tasks[0].Title, "Backup");
                 bool corrupt = false; try { Store.Decode(System.Text.Encoding.UTF8.GetBytes("broken")); } catch (SerializationException) { corrupt = true; } Assert(corrupt, "Corruption surfaced");
+                string migrationRoot = Path.Combine(output, "migration-" + Guid.NewGuid().ToString("N"));
+                string programRoot = Path.Combine(migrationRoot, "program"), localRoot = Path.Combine(migrationRoot, "local");
+                var oldStore = new Store(Path.Combine(programRoot, "data")); oldStore.Save(state);
+                string userData = DataLocation.Resolve(programRoot, localRoot, false);
+                Assert(userData == Path.Combine(localRoot, "QingJian"), "User data path");
+                Assert(DataLocation.Resolve(programRoot, localRoot, true) == Path.Combine(programRoot, "data"), "Portable path");
+                DataLocation.Migrate(programRoot, userData); Assert(new Store(userData).Load().Tasks[0].Title == "更新", "Legacy migration");
+                state.Tasks[0].Title = "旧版后来修改"; oldStore.Save(state); DataLocation.Migrate(programRoot, userData);
+                Assert(new Store(userData).Load().Tasks[0].Title == "更新" && oldStore.Load().Tasks[0].Title == "旧版后来修改", "Migration never overwrites or deletes");
                 var app = new MemoApp { TestMode = true, Store = store, State = new MemoState(), ShutdownMode = ShutdownMode.OnExplicitShutdown };
                 DateTime clock = DateTime.Now;
                 app.State.Tasks.Add(new Todo { Title = "整理本周实验记录", Notes = "核对数据与图表，补全实验备注。", Due = clock.AddHours(3) });
@@ -484,6 +514,7 @@ namespace DesktopMemo
                 app.State.Tasks.Add(new Todo { Title = "阅读并归档参考文献", Due = clock.AddHours(-5), Done = true });
                 app.Main = new MainView(app); app.Desktop = new DesktopView(app); app.Refresh();
                 Render(app.Main, Path.Combine(output, "main.png")); Render(app.Desktop, Path.Combine(output, "desktop.png"));
+                app.Main.Width = 1382; app.Main.Height = 839; Render(app.Main, Path.Combine(output, "store-main.png")); app.Main.Width = 1080; app.Main.Height = 760;
                 var editor = new Editor(app, null); Render(editor, Path.Combine(output, "editor.png"));
                 var reminder = new ReminderView(app); reminder.Add(new[] { app.State.Tasks[0].Id, app.State.Tasks[2].Id }); Render(reminder, Path.Combine(output, "reminder.png"));
                 string doneId = app.State.Tasks[0].Id; app.SetDone(doneId, true); Assert(app.State.Tasks.Single(x => x.Id == doneId).Done && store.Load().Tasks.Single(x => x.Id == doneId).Done, "Completion persisted");
@@ -528,7 +559,7 @@ namespace DesktopMemo
                 app.Main.Width = 1080; app.Main.Height = 760;
                 app.State = new MemoState(); app.Refresh(); Render(app.Main, Path.Combine(output, "empty.png"));
                 app.Exiting = true; editor.Close(); reminder.Close(); app.Reminder.Close(); app.Main.Close(); app.Desktop.Close();
-                File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: reminder boundaries, duplicate suppression, completion, snooze, disabled/no deadline, JSON round trip, atomic replacement/backup, corrupt input, completion undo, desktop visibility, editor validation/create/edit, completed filter, search, reminder delivery/persistence/snooze button, WPF rendering (main, compact, empty, desktop, editor, reminder).\r\n", System.Text.Encoding.UTF8);
+                File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: reminder boundaries, duplicate suppression, completion, snooze, disabled/no deadline, JSON round trip, atomic replacement/backup, corrupt input, user-data/portable paths, legacy migration without overwrite, completion undo, desktop visibility, editor validation/create/edit, completed filter, search, reminder delivery/persistence/snooze button, WPF rendering (main, store, compact, empty, desktop, editor, reminder).\r\n", System.Text.Encoding.UTF8);
                 return 0;
             }
             catch (Exception ex) { File.WriteAllText(Path.Combine(output, "result.txt"), ex.ToString()); return 1; }
@@ -545,7 +576,11 @@ namespace DesktopMemo
         static void Render(Window window, string path)
         {
             window.Show(); window.UpdateLayout();
-            var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32); bitmap.Render(window);
+            var surface = (FrameworkElement)window.Content;
+            var bitmap = new RenderTargetBitmap((int)surface.ActualWidth, (int)surface.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+            var backdrop = new DrawingVisual();
+            using (var drawing = backdrop.RenderOpen()) drawing.DrawRectangle(window.Background, null, new Rect(0, 0, surface.ActualWidth, surface.ActualHeight));
+            bitmap.Render(backdrop); bitmap.Render(surface);
             var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap)); using (var stream = File.Create(path)) encoder.Save(stream); window.Hide();
         }
     }

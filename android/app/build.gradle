@@ -1,0 +1,33 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'io.github.junhezhang.qingjian'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'io.github.junhezhang.qingjian'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0'
+        testInstrumentationRunner 'io.github.junhezhang.qingjian.SmokeTest'
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    signingConfigs {
+        if (System.getenv('QINGJIAN_KEYSTORE')) {
+            release {
+                storeFile file(System.getenv('QINGJIAN_KEYSTORE'))
+                storePassword System.getenv('QINGJIAN_STORE_PASSWORD')
+                keyAlias System.getenv('QINGJIAN_KEY_ALIAS')
+                keyPassword System.getenv('QINGJIAN_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix '.debug'; versionNameSuffix '-preview' }
+        release { minifyEnabled false; if (System.getenv('QINGJIAN_KEYSTORE')) signingConfig signingConfigs.release }
+    }
+    lint { abortOnError true }
+}
+dependencies { testImplementation 'junit:junit:4.13.2' }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }

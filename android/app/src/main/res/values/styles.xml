@@ -1,0 +1,19 @@
+<resources>
+    <style name="AppThemeBase" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#22735B</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F6F7F2</item>
+        <item name="android:navigationBarColor">#22735B</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#F6F7F2</item>
+    </style>
+    <style name="AppTheme" parent="AppThemeBase" />
+    <string name="app_name">青笺</string>
+    <string name="stats_template">待完成 %1$d    ·    24h 内截止 %2$d    ·    已完成 %3$d</string>
+    <string name="set_due">设置截止时间（DDL）</string>
+    <string name="widget_header">青笺 · 我的待办  ↗</string>
+    <string name="widget_toggle">标记完成或恢复待办</string>
+    <string name="widget_unchecked">○</string>
+    <string name="widget_description">显示选中的待办和截止时间，点击圆圈即可完成。</string>
+</resources>

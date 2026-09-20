@@ -1,0 +1,5 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="16dp" android:background="@drawable/widget_background">
+    <TextView android:id="@+id/widget_header" android:layout_width="match_parent" android:layout_height="44dp" android:text="@string/widget_header" android:textColor="#22735B" android:textSize="18sp" android:textStyle="bold" android:gravity="center_vertical" />
+    <LinearLayout android:id="@+id/widget_items" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical" />
+    <TextView android:id="@+id/widget_footer" android:layout_width="match_parent" android:layout_height="36dp" android:textColor="#78867D" android:textSize="12sp" android:gravity="center_vertical" />
+</LinearLayout>
