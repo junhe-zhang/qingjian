@@ -12,13 +12,15 @@ import java.util.*;
 /** Runs only against the debug package on a dedicated emulator; never use on personal task data. */
 public class SmokeTest extends Instrumentation {
     MainActivity main;
+    Bundle arguments;
     void check(boolean ok,String detail){if(!ok)throw new AssertionError(detail);}
     void onMain(Runnable action){Throwable[] failure={null};runOnMainSync(()->{try{action.run();}catch(Throwable t){failure[0]=t;}});waitForIdleSync();if(failure[0]!=null)throw new AssertionError(failure[0]);}
     void sendAction(Context c,String action,String id)throws Exception{java.util.concurrent.CountDownLatch finished=new java.util.concurrent.CountDownLatch(1);Reminders.action(c,action,id).send(c,0,null,(pending,intent,code,data,extras)->finished.countDown(),new Handler(Looper.getMainLooper()));check(finished.await(10,java.util.concurrent.TimeUnit.SECONDS),"Broadcast action finished");waitForIdleSync();}
-    @Override public void onCreate(Bundle args){super.onCreate(args);start();}
+    @Override public void onCreate(Bundle args){super.onCreate(args);arguments=args;start();}
     @Override public void onStart(){
         Bundle result=new Bundle();
         try{
+            if(arguments!=null&&arguments.containsKey("syncPhase")){SyncSmoke.run(this,arguments.getString("syncPhase").equals("verify"));result.putString("stream","QingJian sync PASS: "+arguments.getString("syncPhase")+"\n");finish(Activity.RESULT_OK,result);return;}
             Context context=getTargetContext();check(context.getPackageName().endsWith(".debug"),"Only debug package may be tested");
             if(Build.VERSION.SDK_INT>=33){try(ParcelFileDescriptor p=getUiAutomation().executeShellCommand("pm grant "+context.getPackageName()+" android.permission.POST_NOTIFICATIONS");InputStream in=new FileInputStream(p.getFileDescriptor())){while(in.read()!=-1){}}}
             try(Store s=new Store(context)){s.getWritableDatabase().delete("tasks",null,null);}
@@ -57,10 +59,12 @@ public class SmokeTest extends Instrumentation {
             });
             screenshot(context,"android-main.png");
             onMain(()->main.showEditor(null,null));screenshot(context,"android-editor.png");onMain(()->main.editor.dismiss());
+            AlertDialog[] syncDialog={null};onMain(()->syncDialog[0]=SyncUi.show(main));screenshot(context,"android-sync.png");
+            onMain(()->{syncDialog[0].getButton(AlertDialog.BUTTON_POSITIVE).performClick();check(hasText(syncDialog[0].getWindow().getDecorView(),"请填写网盘账号和应用密码"),"Sync settings validation");syncDialog[0].dismiss();});
             result.putString("stream","QingJian smoke PASS: SQLite create/edit, validation, completion/undo, search, draft recreation, notification delivery, snooze/done actions, widget rendering.\n");finish(Activity.RESULT_OK,result);
         }catch(Throwable error){StringWriter text=new StringWriter();error.printStackTrace(new PrintWriter(text));result.putString("stream","QingJian smoke FAIL\n"+text);finish(Activity.RESULT_CANCELED,result);}
     }
-    void screenshot(Context c,String name)throws IOException{waitForIdleSync();Bitmap bitmap=getUiAutomation().takeScreenshot();check(bitmap!=null,"Screenshot available");try(FileOutputStream out=new FileOutputStream(new File(c.getExternalFilesDir(null),name))){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();}
+    void screenshot(Context c,String name)throws IOException{waitForIdleSync();android.os.SystemClock.sleep(500);Bitmap bitmap=getUiAutomation().takeScreenshot();check(bitmap!=null,"Screenshot available");try(FileOutputStream out=new FileOutputStream(new File(c.getExternalFilesDir(null),name))){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();}
     View findDescription(View v,String label){if(label.contentEquals(v.getContentDescription()==null?"":v.getContentDescription()))return v;if(v instanceof ViewGroup){ViewGroup group=(ViewGroup)v;for(int i=0;i<group.getChildCount();i++){View found=findDescription(group.getChildAt(i),label);if(found!=null)return found;}}return null;}
     boolean hasText(View v,String value){if(v instanceof TextView&&((TextView)v).getText().toString().contains(value))return true;if(v instanceof ViewGroup){ViewGroup group=(ViewGroup)v;for(int i=0;i<group.getChildCount();i++)if(hasText(group.getChildAt(i),value))return true;}return false;}
 }

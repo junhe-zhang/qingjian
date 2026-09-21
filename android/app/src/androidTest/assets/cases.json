@@ -1,0 +1,745 @@
+{
+  "cases": [
+    {
+      "name": "first-merge",
+      "baseline": {
+        "schema": 1,
+        "items": []
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000002",
+            "title": "演示待办 2",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          },
+          {
+            "id": "00000000000000000000000000000002",
+            "title": "演示待办 2",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "outcome": "ok"
+    },
+    {
+      "name": "pull-edit",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "手机修改",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "手机修改",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "outcome": "ok"
+    },
+    {
+      "name": "push-completion",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": true,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": true,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "outcome": "ok"
+    },
+    {
+      "name": "independent-edits",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          },
+          {
+            "id": "00000000000000000000000000000002",
+            "title": "演示待办 2",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "电脑修改",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          },
+          {
+            "id": "00000000000000000000000000000002",
+            "title": "演示待办 2",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          },
+          {
+            "id": "00000000000000000000000000000002",
+            "title": "演示待办 2",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": true,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "电脑修改",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          },
+          {
+            "id": "00000000000000000000000000000002",
+            "title": "演示待办 2",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": true,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "outcome": "ok"
+    },
+    {
+      "name": "same-edit",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": true,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": true,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": true,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "outcome": "ok"
+    },
+    {
+      "name": "concurrent-edit",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "本机",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "云端",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": []
+      },
+      "outcome": "conflict"
+    },
+    {
+      "name": "delete-versus-edit",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "修改",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": []
+      },
+      "outcome": "conflict"
+    },
+    {
+      "name": "remote-delete",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "outcome": "ok"
+    },
+    {
+      "name": "offline-delete",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "outcome": "ok"
+    },
+    {
+      "name": "first-sync-versus-tombstone",
+      "baseline": {
+        "schema": 1,
+        "items": []
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": []
+      },
+      "outcome": "conflict"
+    },
+    {
+      "name": "remote-reset-rejected",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "演示待办 1",
+            "notes": "中文 / emoji 🌿\n第二行",
+            "due": 1790000000123,
+            "created": 1789990000123,
+            "done": false,
+            "lead": 60,
+            "deleted": false
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": []
+      },
+      "expected": {
+        "schema": 1,
+        "items": []
+      },
+      "outcome": "error"
+    },
+    {
+      "name": "deleted-stays-deleted",
+      "baseline": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "local": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "remote": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "expected": {
+        "schema": 1,
+        "items": [
+          {
+            "id": "00000000000000000000000000000001",
+            "title": "",
+            "notes": "",
+            "due": 0,
+            "created": 0,
+            "done": false,
+            "lead": 0,
+            "deleted": true
+          }
+        ]
+      },
+      "outcome": "ok"
+    }
+  ]
+}

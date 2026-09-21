@@ -31,7 +31,7 @@ try {
 $manifest = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'AppxManifest.template.xml'))
 $manifest = $manifest.Replace('__IDENTITY__',[Security.SecurityElement]::Escape($IdentityName)).Replace('__PUBLISHER__',[Security.SecurityElement]::Escape($Publisher)).Replace('__PUBLISHER_DISPLAY__',[Security.SecurityElement]::Escape($PublisherDisplayName))
 [IO.File]::WriteAllText((Join-Path $stage 'AppxManifest.xml'),$manifest,[Text.UTF8Encoding]::new($false))
-$name = if ($Development) { 'QingJian-1.2.0.0-x64-preview-unsigned.msix' } else { 'QingJian-1.2.0.0-x64-store.msix' }
+$name = if ($Development) { 'QingJian-1.3.0.0-x64-preview-unsigned.msix' } else { 'QingJian-1.3.0.0-x64-store.msix' }
 $output = Join-Path $root ('dist\'+$name)
 & $MakeAppx pack /d $stage /p $output /o
 if ($LASTEXITCODE -ne 0) { throw 'MSIX validation or packaging failed.' }

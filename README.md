@@ -7,7 +7,7 @@
 <p align="center">一张青笺，记下待办，也记得截止时间。</p>
 <p align="center">Windows 与 Android 待办 · 桌面显示 · DDL 提醒 · 本地保存</p>
 
-青笺是一款轻量的 Windows 待办应用。把事项、截止时间和完成状态放在一个清单里，也可以挑选几件重要的事，留在桌面上。
+青笺是一款轻量的 Windows 与 Android 待办应用。把事项、截止时间和完成状态放在一个清单里，也可以挑选几件重要的事，留在桌面上。
 
 ![青笺主界面，内容为演示数据](docs/main.png)
 
@@ -22,6 +22,7 @@
 - **延后提醒**：弹窗中可以直接完成事项，或延后 10 分钟。
 - **托盘运行**：关闭主窗口后继续提醒，从托盘随时打开。
 - **本地保存**：数据自动保存，并保留上一个版本的备份。无需账号。
+- **可选跨设备同步（预览）**：通过 HTTPS WebDAV 同步两端清单，支持离线修改合并、完成和删除；冲突提示选择。默认关闭，详见 [同步使用说明](同步使用说明.md)。
 
 | 桌面小窗 | 截止提醒 |
 | --- | --- |
@@ -33,7 +34,7 @@
 
 ![折叠的桌面小窗](docs/desktop-collapsed.png)
 
-Windows 最新版本为 **1.2.0**，详见 [更新日志](CHANGELOG.md)。跨桌面固定使用 Windows Shell 未公开接口，已在 Windows 11 build 26200 验证；系统更新或其他 Windows 版本可能影响兼容性。失败时小窗会提示，可点击重试，待办与提醒仍可使用。
+Windows 稳定版为 **1.2.0**；同步预览版为 **Windows 1.3.0 / Android 0.2.0**，详见 [更新日志](CHANGELOG.md)。跨桌面固定使用 Windows Shell 未公开接口，已在 Windows 11 build 26200 验证；其他系统版本可能影响兼容性，失败会提示。
 
 ## 开始使用
 
@@ -43,9 +44,11 @@ Windows 最新版本为 **1.2.0**，详见 [更新日志](CHANGELOG.md)。跨桌
 
 ### Android 预览版与商店准备
 
-[预览版下载](https://github.com/junhe-zhang/qingjian/releases/tag/v1.1.0-preview)提供 Android 8.0 及以上使用的 APK，以及更新后的 Windows 便携版。
+[同步预览版下载](https://github.com/junhe-zhang/qingjian/releases/tag/v1.3.0-preview)提供 Android 8.0 及以上使用的 APK，以及 Windows 1.3.0 便携版。
 
-Android 支持待办、DDL、完成划线、搜索筛选、桌面小组件、通知和延后提醒。首次使用请在「提醒设置」允许通知；精确提醒需要系统授权。预览 APK 使用调试签名，应用名称为「青笺预览版」。Windows 与 Android 各自本地保存，目前没有跨设备同步。
+Android 支持待办、DDL、完成划线、搜索筛选、桌面小组件、通知和延后提醒。首次使用请在「提醒设置」允许通知；精确提醒需要系统授权。预览 APK 使用调试签名，应用名称为「青笺预览版」。两端默认本地保存，可自行开启 WebDAV 同步。已通过本地测试服务器互通；真实坚果云账号与真实手机尚未验收。云端同步文件没有端到端加密。
+
+<p><img src="docs/windows-sync.png" width="330" alt="Windows 同步设置，默认关闭"> <img src="docs/android-sync.png" width="200" alt="Android 同步设置，未填写账号"></p>
 
 <p><img src="docs/android-main.png" width="280" alt="Android 预览版清单，演示数据"> <img src="docs/android-editor.png" width="280" alt="Android 新建待办表单"></p>
 
@@ -92,6 +95,8 @@ Get-Content .\verification\result.txt
 ```text
 App.cs               WPF 界面、保存、提醒与自检
 VirtualDesktopPin.cs  仅固定小窗到所有虚拟桌面的 Shell 接口
+Sync*.cs / WebDavSync.cs  同步模型、网盘通信、配置与验证
+sync/                协议说明、共享案例生成器及本地测试服务器
 build.ps1            编译程序
 make-icon.ps1        生成多尺寸 Windows 图标
 app-icon.png         图标原图

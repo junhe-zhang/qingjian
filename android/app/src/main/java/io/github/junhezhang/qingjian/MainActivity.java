@@ -26,7 +26,9 @@ public class MainActivity extends Activity {
     static final int[] LEADS={0,10,30,60,180,1440,2880,10080,-1};
     static final String[] FILTERS={"全部","未完成","临近截止","已逾期","已完成"};
     LinearLayout list,filterRow,root;
-    TextView stats,permissionStatus;
+    TextView stats,permissionStatus,syncStatus;
+    final android.os.Handler syncHandler=new android.os.Handler(android.os.Looper.getMainLooper());
+    final Runnable syncTick=new Runnable(){public void run(){SyncManager.start(MainActivity.this,false,null,conflict->{if(!isDestroyed())refreshList();});refreshList();syncHandler.postDelayed(this,120_000);}};
     EditText search;
     int filter;
     AlertDialog editor;
@@ -58,9 +60,11 @@ public class MainActivity extends Activity {
         for(int i=0;i<FILTERS.length;i++){final int selected=i;Button chip=button(FILTERS[i],()->{filter=selected;refreshList();},false);chip.setTextSize(12);filterRow.addView(chip);}
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);scroll.addView(list);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         permissionStatus=text("",11,MUTED);permissionStatus.setPadding(0,dp(8),0,dp(4));root.addView(permissionStatus);
+        syncStatus=text("",11,MUTED);syncStatus.setPadding(0,0,0,dp(4));root.addView(syncStatus);syncStatus.setOnClickListener(v->SyncUi.show(this));
         LinearLayout tools=row();
         tools.addView(button("提醒设置",this::showReminderSettings,false),new LinearLayout.LayoutParams(0,dp(48),1));
         tools.addView(button("桌面组件",this::addWidget,false),new LinearLayout.LayoutParams(0,dp(48),1));
+        tools.addView(button("云端同步",()->SyncUi.show(this),false),new LinearLayout.LayoutParams(0,dp(48),1));
         tools.addView(button("隐私说明",this::showPrivacy,false),new LinearLayout.LayoutParams(0,dp(48),1));root.addView(tools);
         search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int n){} public void onTextChanged(CharSequence s,int a,int b,int c){refreshList();} public void afterTextChanged(Editable e){} });
         if(saved!=null) search.setText(saved.getString("query",""));
@@ -69,7 +73,9 @@ public class MainActivity extends Activity {
             try(Store store=new Store(this)){String id=saved.getString("draftId");Todo original=id==null?null:store.find(id);if(id==null||original!=null)showEditor(original,saved);}catch(android.database.SQLException ex){showError(ex);}
         });
     }
-    @Override protected void onResume(){super.onResume();try{Reminders.process(this);}catch(android.database.SQLException ex){showError(ex);}refreshList();}
+    @Override protected void onResume(){super.onResume();try{Reminders.process(this);}catch(android.database.SQLException ex){showError(ex);}refreshList();syncHandler.post(syncTick);}
+    @Override protected void onPause(){syncHandler.removeCallbacks(syncTick);super.onPause();}
+    @Override protected void onDestroy(){if(editor!=null&&editor.isShowing())editor.dismiss();super.onDestroy();}
     @Override protected void onSaveInstanceState(Bundle out){
         super.onSaveInstanceState(out);out.putInt("filter",filter);out.putString("query",search.getText().toString());
         if(editor!=null && editor.isShowing()){
@@ -94,6 +100,7 @@ public class MainActivity extends Activity {
     }
     void refreshList(){
         if(list==null)return;
+        syncStatus.setText(SyncManager.status(this));
         try(Store store=new Store(this)){
             List<Todo> all=store.all();long now=System.currentTimeMillis();int done=0,soon=0;for(Todo t:all){if(t.done)done++;if(!t.done&&t.due>now&&t.due<=now+86_400_000)soon++;}
             stats.setText(getString(R.string.stats_template,all.size()-done,soon,done));
@@ -122,6 +129,8 @@ public class MainActivity extends Activity {
     }
     void label(LinearLayout parent,String title){TextView text=text(title,13,MUTED);text.setPadding(0,dp(14),0,dp(4));parent.addView(text);}
     void showEditor(Todo original,Bundle draft){
+        if(SyncManager.busy){Toast.makeText(this,"正在同步，请稍后编辑。",Toast.LENGTH_SHORT).show();return;}
+        SyncManager.editing=true;
         editId=original==null?null:original.id;
         LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);form.setPadding(dp(20),dp(4),dp(20),dp(12));ScrollView scroll=new ScrollView(this);scroll.addView(form);
         label(form,"事项名称 *");editTitle=new EditText(this);editTitle.setSingleLine(true);editTitle.setTextSize(16);editTitle.setHint("要做什么？");editTitle.setFilters(new InputFilter[]{new InputFilter.LengthFilter(200)});editTitle.setText(draft!=null?draft.getString("draftTitle"):original==null?"":original.title);form.addView(editTitle);
@@ -142,7 +151,7 @@ public class MainActivity extends Activity {
                 long due=editHasDue.isChecked()?editDate.getTimeInMillis():0;int lead=LEADS[editLead.getSelectedItemPosition()];if(task.due!=due||task.leadMinutes!=lead)task.resetReminder();
                 task.title=name;task.notes=editNotes.getText().toString().trim();task.due=due;task.leadMinutes=lead;task.desktop=editDesktop.isChecked();s.save(task);Reminders.cancel(this,task.id);editor.dismiss();Reminders.process(this);refreshList();
             }catch(android.database.SQLException|IllegalArgumentException ex){showError(ex);}
-        }));editor.show();
+        }));editor.setOnDismissListener(d->SyncManager.editing=false);editor.show();
     }
     static String leadLabel(int minutes){if(minutes<0)return "不提醒";if(minutes==0)return "截止时提醒";if(minutes%1440==0)return "提前 "+minutes/1440+" 天";if(minutes%60==0)return "提前 "+minutes/60+" 小时";return "提前 "+minutes+" 分钟";}
     void showReminderSettings(){
@@ -156,6 +165,6 @@ public class MainActivity extends Activity {
     }
     @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);try{Reminders.process(this);}catch(android.database.SQLException ex){showError(ex);}refreshList();}
     void addWidget(){AppWidgetManager manager=getSystemService(AppWidgetManager.class);if(manager.isRequestPinAppWidgetSupported())manager.requestPinAppWidget(new ComponentName(this,TodoWidget.class),null,null);else new AlertDialog.Builder(this).setTitle("添加桌面小组件").setMessage("长按手机桌面空白处，打开「小组件」，找到「青笺待办」并拖到桌面。\n\n清单中勾选「在桌面显示」的事项会出现在组件中。").setPositiveButton("知道了",null).show();}
-    void showPrivacy(){new AlertDialog.Builder(this).setTitle("青笺 · 隐私说明").setMessage("待办标题、备注、截止时间和完成状态只保存在这台设备的应用私有数据库中。\n\n应用不联网，不含广告、统计或第三方跟踪 SDK；不读取联系人、相册或位置，也不提供跨设备云同步。\n\n通知权限用于提醒；精确闹钟权限用于安排提醒；开机广播用于重建提醒。桌面小组件只显示你选中的事项。\n\n卸载应用或清除应用数据会删除待办。安卓版目前为预览版。").setPositiveButton("知道了",null).show();}
+    void showPrivacy(){new AlertDialog.Builder(this).setTitle("青笺 · 隐私说明").setMessage("默认只在本机保存待办。你主动开启 WebDAV 同步后，标题、备注、截止时间、提醒提前量、完成状态和删除标记会上传到你指定的网盘。\n\n使用 HTTPS 传输；同步文件不是端到端加密，网盘服务商可访问其内容。账号和应用密码使用 Android Keystore 加密保护。\n\n不含广告、统计或第三方跟踪 SDK，不读取联系人、相册或位置。本机通知记录、桌面显示设置不上传。\n\n通知和闹钟权限用于提醒；网络权限用于同步；开机广播用于重建提醒和系统后台同步任务。同步前会在应用私有目录保留双方备份。\n\n停用同步不会删除网盘文件。卸载或清除应用数据会删除本机待办及备份；若要彻底清除，还需删除网盘的同步文件和历史版本。当前为同步预览版。").setPositiveButton("知道了",null).show();}
     void createDemo(){try(Store store=new Store(this)){if(!store.all().isEmpty())return;long now=System.currentTimeMillis();String[] names={"整理本周实验记录","准备组会汇报","阅读并归档参考文献"};for(int i=0;i<3;i++){Todo t=new Todo();t.title=names[i];t.notes=i==0?"核对数据与图表，补全实验备注。":"";t.due=now+(i+1)*3_600_000L;t.done=i==2;store.save(t);}}}
 }

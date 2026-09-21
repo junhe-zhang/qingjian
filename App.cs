@@ -17,8 +17,8 @@ using Forms = System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("QingJian")]
 [assembly: System.Reflection.AssemblyProduct("QingJian")]
-[assembly: System.Reflection.AssemblyVersion("1.2.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.2.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.3.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.3.0.0")]
 [assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8")]
 
 namespace DesktopMemo
@@ -59,6 +59,10 @@ namespace DesktopMemo
         [DataMember] public bool DesktopCollapsed;
         [DataMember] public double DesktopLeft = -1;
         [DataMember] public double DesktopTop = 100;
+        [DataMember] public List<SyncItem> SyncBase = new List<SyncItem>();
+        [DataMember] public string SyncAccount = "";
+        [DataMember] public List<string> SyncDeleted = new List<string>();
+        [OnDeserialized] void AfterRead(StreamingContext context) { if (SyncBase == null) SyncBase = new List<SyncItem>(); if(SyncDeleted==null)SyncDeleted=new List<string>(); }
     }
 
     public class Store
@@ -132,6 +136,9 @@ namespace DesktopMemo
         DispatcherTimer timer;
         public bool Exiting;
         public bool TestMode;
+        public bool EditorOpen;
+        public readonly SyncController Sync;
+        public MemoApp() { Sync = new SyncController(this); }
         bool checking;
         public string Filter = "全部事项";
 
@@ -139,6 +146,7 @@ namespace DesktopMemo
         {
             MemoState next = DesktopMemo.Store.Decode(DesktopMemo.Store.Encode(State));
             change(next);
+            foreach(var removed in State.Tasks.Where(t=>!next.Tasks.Any(n=>n.Id==t.Id)))if(!next.SyncDeleted.Contains(removed.Id))next.SyncDeleted.Add(removed.Id);
             try { Store.Save(next); }
             catch (Exception ex)
             { if (!(ex is IOException) && !(ex is UnauthorizedAccessException)) throw; MessageBox.Show("保存失败，本次修改未生效。\n" + ex.Message, "无法保存", MessageBoxButton.OK, MessageBoxImage.Error); Refresh(); return false; }
@@ -160,7 +168,7 @@ namespace DesktopMemo
             Change(state => { var task = state.Tasks.Single(t => t.Id == id); task.Done = done; task.CompletedAt = done ? (DateTime?)DateTime.Now : null; if (!done) { task.NotifiedStage = 0; task.SnoozedUntil = null; } });
         }
         public void ShowMain() { Main.Show(); Main.WindowState = WindowState.Normal; Main.Activate(); }
-        public void Edit(Todo task) { var dialog = new Editor(this, task) { Owner = Main.IsVisible ? (Window)Main : Desktop }; if (dialog.ShowDialog() == true) CheckReminders(); }
+        public void Edit(Todo task) { if(Sync.Busy){MessageBox.Show("正在同步，请稍后编辑。", "青笺");return;} EditorOpen=true;try{var dialog = new Editor(this, task) { Owner = Main.IsVisible ? (Window)Main : Desktop }; if (dialog.ShowDialog() == true) CheckReminders();}finally{EditorOpen=false;} }
         public void CheckReminders()
         {
             if (checking || Exiting) return;
@@ -187,6 +195,7 @@ namespace DesktopMemo
         public void Start()
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            Sync.Initialize();
             Main = new MainView(this);
             MainWindow = Main;
             Desktop = new DesktopView(this);
@@ -199,7 +208,7 @@ namespace DesktopMemo
             tray.DoubleClick += (s, e) => ShowMain();
             tray.BalloonTipClicked += (s, e) => { if (Reminder != null && Reminder.HasItems) { Reminder.Show(); Reminder.Activate(); } else ShowMain(); };
             timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
-            timer.Tick += (s, e) => { Refresh(); Desktop.PinToAllDesktops(); CheckReminders(); };
+            timer.Tick += (s, e) => { Refresh(); Desktop.PinToAllDesktops(); CheckReminders(); Sync.Tick(); };
             timer.Start(); Refresh(); Main.Show();
             Dispatcher.BeginInvoke(new Action(CheckReminders), DispatcherPriority.ApplicationIdle);
         }
@@ -234,9 +243,10 @@ namespace DesktopMemo
             var bottom = new StackPanel { Margin = new Thickness(24) };
             bottom.Children.Add(UI.Text("桌面与提醒", 12, UI.Muted)); bottom.Children.Add(desktopToggle); bottom.Children.Add(topToggle);
             bottom.Children.Add(UI.Text("关闭主窗口后，托盘继续提醒。\n完全退出后将停止提醒。", 11, UI.Muted));
+            var syncButton = UI.Button("跨设备同步", () => new SyncView(app).ShowDialog()); syncButton.Margin = new Thickness(0, 12, 0, 0); bottom.Children.Add(syncButton);
             var exit = UI.Button("退出程序", () => app.Quit()); exit.Margin = new Thickness(0, 18, 0, 0); bottom.Children.Add(exit);
             DockPanel.SetDock(bottom, Dock.Bottom); side.Children.Add(bottom);
-            var sideTop = new StackPanel { Margin = new Thickness(24, 32, 20, 0) }; side.Children.Add(sideTop);
+            var sideTop = new StackPanel { Margin = new Thickness(24, 32, 20, 0) }; side.Children.Add(new ScrollViewer {Content=sideTop,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled});
             sideTop.Children.Add(UI.Text("◷  青笺", 25, UI.Green));
             var subtitle = UI.Text("留一点空间，专注当下。", 12, UI.Muted); subtitle.Margin = new Thickness(0, 10, 0, 40); sideTop.Children.Add(subtitle);
             sideTop.Children.Add(UI.Text("我的清单", 11, UI.Muted));
@@ -255,7 +265,7 @@ namespace DesktopMemo
             var listHeader = new DockPanel { Margin = new Thickness(0, 18, 0, 16) };
             var searchBox = new StackPanel { Orientation = Orientation.Horizontal }; searchBox.Children.Add(UI.Text("搜索  ", 12, UI.Muted)); searchBox.Children.Add(search); DockPanel.SetDock(searchBox, Dock.Right); listHeader.Children.Add(searchBox); listHeader.Children.Add(heading); header.Children.Add(listHeader);
             var footer = new DockPanel { Margin = new Thickness(0, 12, 0, 0) }; DockPanel.SetDock(footer, Dock.Bottom); body.Children.Add(footer);
-            var tip = UI.Text("数据自动保存在本机", 11, UI.Muted); DockPanel.SetDock(tip, Dock.Right); footer.Children.Add(tip); footer.Children.Add(count);
+            var tip = UI.Text(app.Sync.Status, 11, UI.Muted); tip.MaxWidth=400;app.Sync.Changed += () => tip.Text=app.Sync.Status; DockPanel.SetDock(tip, Dock.Right); footer.Children.Add(tip); footer.Children.Add(count);
             body.Children.Add(new ScrollViewer { Content = tasks, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Padding = new Thickness(0, 0, 8, 0) });
             search.TextChanged += (s, e) => Refresh();
             desktopToggle.Click += (s, e) => { if (!rendering) app.Change(state => state.DesktopVisible = desktopToggle.IsChecked == true); };
@@ -491,6 +501,8 @@ namespace DesktopMemo
         public static int Main(string[] args)
         {
             if (args.Contains("--self-test")) return SelfTest.Run();
+            if (args.Contains("--sync-test")) return SyncTests.Run(false);
+            if (args.Contains("--sync-verify")) return SyncTests.Run(true);
             string baseFolder = AppDomain.CurrentDomain.BaseDirectory;
             bool portable = args.Contains("--portable") || File.Exists(Path.Combine(baseFolder, "portable.flag"));
             string folder = DataLocation.Resolve(baseFolder, Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), portable);
@@ -580,6 +592,7 @@ namespace DesktopMemo
                 Render(app.Main, Path.Combine(output, "main.png")); Render(app.Desktop, Path.Combine(output, "desktop.png"));
                 app.Main.Width = 1382; app.Main.Height = 839; Render(app.Main, Path.Combine(output, "store-main.png")); app.Main.Width = 1080; app.Main.Height = 760;
                 var editor = new Editor(app, null); Render(editor, Path.Combine(output, "editor.png"));
+                var syncView = new SyncView(app); Render(syncView, Path.Combine(output, "sync-settings.png")); syncView.Close();
                 var reminder = new ReminderView(app); reminder.Add(new[] { app.State.Tasks[0].Id, app.State.Tasks[2].Id }); Render(reminder, Path.Combine(output, "reminder.png"));
                 string doneId = app.State.Tasks[0].Id; app.SetDone(doneId, true); Assert(app.State.Tasks.Single(x => x.Id == doneId).Done && store.Load().Tasks.Single(x => x.Id == doneId).Done, "Completion persisted");
                 app.SetDone(doneId, false); Assert(!app.State.Tasks.Single(x => x.Id == doneId).Done && app.State.Tasks.Single(x => x.Id == doneId).NotifiedStage == 0, "Undo completion");

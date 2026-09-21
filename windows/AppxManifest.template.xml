@@ -3,7 +3,7 @@
          xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
          IgnorableNamespaces="uap rescap">
-  <Identity Name="__IDENTITY__" Publisher="__PUBLISHER__" Version="1.2.0.0" ProcessorArchitecture="x64" />
+  <Identity Name="__IDENTITY__" Publisher="__PUBLISHER__" Version="1.3.0.0" ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>青笺 QingJian</DisplayName>
     <PublisherDisplayName>__PUBLISHER_DISPLAY__</PublisherDisplayName>

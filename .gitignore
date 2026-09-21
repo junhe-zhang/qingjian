@@ -7,6 +7,9 @@ dist/
 # Generated builds, local shortcuts and temporary files.
 *.exe
 /QingJian.exe.config
+/QingJian-*.exe.config
+sync-backups/
+sync-settings.bin
 *.zip
 *.lnk
 *.tmp
