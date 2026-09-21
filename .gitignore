@@ -6,6 +6,7 @@ dist/
 
 # Generated builds, local shortcuts and temporary files.
 *.exe
+/QingJian.exe.config
 *.zip
 *.lnk
 *.tmp

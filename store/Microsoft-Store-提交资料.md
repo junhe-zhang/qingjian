@@ -72,7 +72,7 @@
   -PublisherDisplayName '从商店复制的显示名称'
 ```
 
-输出：`dist/QingJian-1.1.0.0-x64-store.msix`。商店签名在通过审核并发布时处理。不要把本地测试证书或私钥上传仓库。
+输出：`dist/QingJian-1.2.0.0-x64-store.msix`。商店签名在通过审核并发布时处理。不要把本地测试证书或私钥上传仓库。
 
 ## 提交前仍需完成
 

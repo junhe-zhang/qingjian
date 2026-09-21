@@ -5,6 +5,7 @@ $refs = @('System.dll','System.Core.dll','System.Xaml.dll','System.Runtime.Seria
 $arguments = @('/nologo','/target:winexe','/optimize+','/utf8output',('/out:' + $OutputPath),('/win32icon:' + (Join-Path $PSScriptRoot 'app.ico')))
 foreach ($ref in $refs) { $arguments += '/reference:' + (Join-Path $framework $ref) }
 $arguments += Join-Path $PSScriptRoot 'App.cs'
+$arguments += Join-Path $PSScriptRoot 'VirtualDesktopPin.cs'
 & (Join-Path $framework 'csc.exe') @arguments
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 Write-Output ('Built: ' + $OutputPath)

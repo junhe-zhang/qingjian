@@ -17,8 +17,8 @@ using Forms = System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("QingJian")]
 [assembly: System.Reflection.AssemblyProduct("QingJian")]
-[assembly: System.Reflection.AssemblyVersion("1.1.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.1.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.2.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.2.0.0")]
 [assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8")]
 
 namespace DesktopMemo
@@ -56,6 +56,7 @@ namespace DesktopMemo
         [DataMember] public List<Todo> Tasks = new List<Todo>();
         [DataMember] public bool DesktopVisible = true;
         [DataMember] public bool AlwaysOnTop = true;
+        [DataMember] public bool DesktopCollapsed;
         [DataMember] public double DesktopLeft = -1;
         [DataMember] public double DesktopTop = 100;
     }
@@ -198,7 +199,7 @@ namespace DesktopMemo
             tray.DoubleClick += (s, e) => ShowMain();
             tray.BalloonTipClicked += (s, e) => { if (Reminder != null && Reminder.HasItems) { Reminder.Show(); Reminder.Activate(); } else ShowMain(); };
             timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
-            timer.Tick += (s, e) => { Refresh(); CheckReminders(); };
+            timer.Tick += (s, e) => { Refresh(); Desktop.PinToAllDesktops(); CheckReminders(); };
             timer.Start(); Refresh(); Main.Show();
             Dispatcher.BeginInvoke(new Action(CheckReminders), DispatcherPriority.ApplicationIdle);
         }
@@ -374,6 +375,15 @@ namespace DesktopMemo
         readonly MemoApp app;
         readonly StackPanel list = new StackPanel();
         readonly TextBlock summary = UI.Text("", 12, UI.Muted);
+        readonly TextBlock heading = UI.Text("◷  我的待办", 17, UI.Green);
+        readonly TextBlock pinStatus = UI.Text("正在设置跨桌面显示…", 10, UI.Muted);
+        readonly DockPanel header;
+        readonly StackPanel footer;
+        readonly ScrollViewer scroll;
+        readonly Button collapse;
+        bool collapsed;
+        double expandedHeight = 440;
+        public bool PinnedToAllDesktops { get; private set; }
         public DesktopView(MemoApp app)
         {
             this.app = app; UI.Init(this); Title = "桌面待办"; Width = 350; Height = 440; MinWidth = 300; MinHeight = 230; WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.CanResizeWithGrip; ShowInTaskbar = false; ShowActivated = false;
@@ -382,19 +392,55 @@ namespace DesktopMemo
             Top = Math.Max(area.Top, Math.Min(app.State.DesktopTop, area.Bottom - Height));
             var frame = UI.Card(null, UI.Brush("#F8FAF5")); frame.Margin = new Thickness(0); frame.CornerRadius = new CornerRadius(0); frame.BorderBrush = UI.Brush("#CBD7C7"); Content = frame;
             var root = new DockPanel(); frame.Child = root;
-            var header = new DockPanel { Margin = new Thickness(0, 0, 0, 14), Background = Brushes.Transparent, Cursor = Cursors.SizeAll, ToolTip = "拖动这里移动小窗" };
-            var hide = UI.Button("—", () => app.Change(state => state.DesktopVisible = false)); hide.ToolTip = "隐藏桌面小窗，提醒仍继续"; hide.Padding = new Thickness(10, 2, 10, 2); hide.Margin = new Thickness(0); DockPanel.SetDock(hide, Dock.Right); header.Children.Add(hide); header.Children.Add(UI.Text("◷  我的待办", 18, UI.Green));
-            header.MouseLeftButtonDown += (s, e) => { if (!(e.OriginalSource is TextBlock) && e.OriginalSource != header) return; DragMove(); app.Change(state => { state.DesktopLeft = Left; state.DesktopTop = Top; }); };
+            header = new DockPanel { Margin = new Thickness(0, 0, 0, 14), Background = Brushes.Transparent, Cursor = Cursors.SizeAll, ToolTip = "拖动这里移动小窗" };
+            var hide = UI.Button("—", () => app.Change(state => state.DesktopVisible = false)); hide.ToolTip = "隐藏桌面小窗，提醒仍继续"; hide.Padding = new Thickness(8, 2, 8, 2); hide.Margin = new Thickness(0); DockPanel.SetDock(hide, Dock.Right); header.Children.Add(hide);
+            collapse = UI.Button("收起", () => app.Change(state => state.DesktopCollapsed = !state.DesktopCollapsed)); collapse.Padding = new Thickness(8, 2, 8, 2); collapse.Margin = new Thickness(0, 0, 6, 0); DockPanel.SetDock(collapse, Dock.Right); header.Children.Add(collapse); header.Children.Add(heading);
+            header.MouseLeftButtonDown += (s, e) => { if (e.OriginalSource != heading && e.OriginalSource != header) return; DragMove(); app.Change(state => { state.DesktopLeft = Left; state.DesktopTop = Top; }); };
             DockPanel.SetDock(header, Dock.Top); root.Children.Add(header);
-            var footer = new DockPanel { Margin = new Thickness(0, 12, 0, 0) }; var open = UI.Button("打开清单 ↗", () => app.ShowMain()); open.Margin = new Thickness(0); DockPanel.SetDock(open, Dock.Right); footer.Children.Add(open); footer.Children.Add(summary); DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
-            root.Children.Add(new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+            footer = new StackPanel { Margin = new Thickness(0, 12, 0, 0) }; var actions = new DockPanel(); var open = UI.Button("打开清单 ↗", () => app.ShowMain()); open.Margin = new Thickness(0); DockPanel.SetDock(open, Dock.Right); actions.Children.Add(open); actions.Children.Add(summary); footer.Children.Add(actions); pinStatus.Margin = new Thickness(0, 8, 0, 0); pinStatus.Cursor = Cursors.Hand; pinStatus.MouseLeftButtonUp += (s, e) => PinToAllDesktops(); footer.Children.Add(pinStatus); DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
+            scroll = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }; root.Children.Add(scroll);
+            IsVisibleChanged += (s, e) => { if (IsVisible) Dispatcher.BeginInvoke(new Action(PinToAllDesktops), DispatcherPriority.ApplicationIdle); };
             Closing += (s, e) => { if (!app.Exiting) { e.Cancel = true; app.Change(state => state.DesktopVisible = false); } };
+        }
+        public void PinToAllDesktops()
+        {
+            if (!IsVisible) return;
+            try
+            {
+                PinnedToAllDesktops = VirtualDesktopPin.EnsurePinned(new System.Windows.Interop.WindowInteropHelper(this).Handle);
+                pinStatus.Text = PinnedToAllDesktops ? "已固定到所有桌面" : "跨桌面固定未生效 · 点击重试";
+                pinStatus.ToolTip = pinStatus.Text;
+            }
+            catch (Exception ex)
+            {
+                if (!(ex is System.Runtime.InteropServices.COMException) && !(ex is InvalidCastException)) throw;
+                PinnedToAllDesktops = false;
+                pinStatus.Text = "跨桌面固定失败 · 点击重试";
+                pinStatus.ToolTip = ex.Message;
+            }
+            pinStatus.Foreground = PinnedToAllDesktops ? UI.Muted : UI.Amber;
+            header.ToolTip = "拖动这里移动小窗\n" + pinStatus.Text + "\n" + pinStatus.ToolTip;
         }
         public void Refresh()
         {
+            bool next = app.State.DesktopCollapsed;
+            if (next != collapsed)
+            {
+                if (next) expandedHeight = Height;
+                collapsed = next;
+                MinHeight = collapsed ? 72 : 230;
+                Height = collapsed ? 72 : expandedHeight;
+                ResizeMode = collapsed ? ResizeMode.NoResize : ResizeMode.CanResizeWithGrip;
+                if (!collapsed) Top = Math.Max(SystemParameters.WorkArea.Top, Math.Min(Top, SystemParameters.WorkArea.Bottom - Height));
+            }
+            collapse.Content = collapsed ? "展开" : "收起";
+            collapse.ToolTip = collapsed ? "展开桌面待办" : "折叠为标题栏，提醒继续运行";
+            header.Margin = new Thickness(0, 0, 0, collapsed ? 0 : 14);
+            footer.Visibility = scroll.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
             list.Children.Clear(); DateTime now = DateTime.Now;
             var visible = app.State.Tasks.Where(t => t.Desktop).OrderBy(t => t.Done).ThenBy(t => t.Due ?? DateTime.MaxValue).ToList();
             summary.Text = visible.Count(t => !t.Done) + " 项待完成";
+            heading.Text = collapsed ? "◷  待办 · " + visible.Count(t => !t.Done) : "◷  我的待办";
             foreach (var task in visible)
             {
                 var row = new DockPanel();
@@ -513,6 +559,24 @@ namespace DesktopMemo
                 app.State.Tasks.Add(new Todo { Title = "确认项目材料", Due = clock.AddHours(-2), Desktop = false });
                 app.State.Tasks.Add(new Todo { Title = "阅读并归档参考文献", Due = clock.AddHours(-5), Done = true });
                 app.Main = new MainView(app); app.Desktop = new DesktopView(app); app.Refresh();
+                app.Desktop.Show(); app.Desktop.UpdateLayout();
+                app.Desktop.Dispatcher.Invoke(new Action(app.Desktop.PinToAllDesktops), DispatcherPriority.ApplicationIdle);
+                Assert(app.Desktop.PinnedToAllDesktops, "Desktop window pinned on current Windows shell");
+                app.Desktop.Height = 500;
+                Children<Button>(app.Desktop).Single(x => (string)x.Content == "收起").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert(app.State.DesktopCollapsed && store.Load().DesktopCollapsed && app.Desktop.Height == 72 && app.Desktop.ResizeMode == ResizeMode.NoResize, "Collapse button and persistence");
+                var restoredDesktop = new DesktopView(app); restoredDesktop.Refresh();
+                Assert(restoredDesktop.Height == 72, "New window restores saved collapse state");
+                app.Exiting = true; restoredDesktop.Close(); app.Exiting = false;
+                string legacyJson = System.Text.Encoding.UTF8.GetString(Store.Encode(app.State)).Replace("\"DesktopCollapsed\":true,", "");
+                Assert(!Store.Decode(System.Text.Encoding.UTF8.GetBytes(legacyJson)).DesktopCollapsed, "Old data defaults to expanded");
+                app.Desktop.Refresh(); Assert(app.Desktop.Height == 72, "Refresh preserves collapsed height");
+                Render(app.Desktop, Path.Combine(output, "desktop-collapsed.png"));
+                app.Desktop.Show(); app.Desktop.UpdateLayout();
+                Children<Button>(app.Desktop).Single(x => (string)x.Content == "展开").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert(!store.Load().DesktopCollapsed && app.Desktop.Height == 500, "Expand restores previous height");
+                app.Desktop.PinToAllDesktops(); Assert(app.Desktop.PinnedToAllDesktops, "Pin persists after collapse and show");
+                app.Desktop.Height = 440;
                 Render(app.Main, Path.Combine(output, "main.png")); Render(app.Desktop, Path.Combine(output, "desktop.png"));
                 app.Main.Width = 1382; app.Main.Height = 839; Render(app.Main, Path.Combine(output, "store-main.png")); app.Main.Width = 1080; app.Main.Height = 760;
                 var editor = new Editor(app, null); Render(editor, Path.Combine(output, "editor.png"));
@@ -559,7 +623,7 @@ namespace DesktopMemo
                 app.Main.Width = 1080; app.Main.Height = 760;
                 app.State = new MemoState(); app.Refresh(); Render(app.Main, Path.Combine(output, "empty.png"));
                 app.Exiting = true; editor.Close(); reminder.Close(); app.Reminder.Close(); app.Main.Close(); app.Desktop.Close();
-                File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: reminder boundaries, duplicate suppression, completion, snooze, disabled/no deadline, JSON round trip, atomic replacement/backup, corrupt input, user-data/portable paths, legacy migration without overwrite, completion undo, desktop visibility, editor validation/create/edit, completed filter, search, reminder delivery/persistence/snooze button, WPF rendering (main, store, compact, empty, desktop, editor, reminder).\r\n", System.Text.Encoding.UTF8);
+                File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: reminder boundaries, duplicate suppression, completion, snooze, disabled/no deadline, JSON round trip, atomic replacement/backup, corrupt input, user-data/portable paths, legacy migration without overwrite, completion undo, desktop visibility, collapse persistence and height restoration, actual Windows shell pin/readback, editor validation/create/edit, completed filter, search, reminder delivery/persistence/snooze button, WPF rendering (main, store, compact, empty, desktop, collapsed, editor, reminder).\r\n", System.Text.Encoding.UTF8);
                 return 0;
             }
             catch (Exception ex) { File.WriteAllText(Path.Combine(output, "result.txt"), ex.ToString()); return 1; }
